@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDrawing } from "@/context/DrawingContext";
@@ -11,7 +10,7 @@ import {
   Printer, 
   Eye,
   FileText, 
-  LineWidth, 
+  Pencil, 
   Palette, 
   Copy, 
   MinusCircle, 
@@ -156,7 +155,7 @@ const PrintSettings: React.FC = () => {
                 {/* Outline Thickness */}
                 <div className="space-y-3">
                   <Label className="text-base flex items-center gap-2">
-                    <LineWidth size={16} className="text-muted-foreground" />
+                    <Pencil size={16} className="text-muted-foreground" />
                     Outline Thickness
                   </Label>
                   <RadioGroup 

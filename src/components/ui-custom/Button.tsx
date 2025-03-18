@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "outline" | "ghost" | "link" | "destructive" | "premium";
-  size?: "default" | "sm" | "lg" | "icon" | "xl";
+  size?: "default" | "sm" | "lg" | "icon";
   children: React.ReactNode;
   isLoading?: boolean;
   loadingText?: string;
@@ -34,6 +34,7 @@ const Button: React.FC<ButtonProps> = ({
         "font-medium transition-all duration-300 relative overflow-hidden group",
         variant === "premium" && 
           "bg-gradient-to-r from-king-600 to-king-700 hover:from-king-700 hover:to-king-800 text-white shadow-lg hover:shadow-king-500/30",
+        size === "lg" && "text-base px-6",
         className
       )}
       disabled={isLoading || props.disabled}
