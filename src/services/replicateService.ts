@@ -28,6 +28,10 @@ export const generateColoring = async (
   try {
     console.log("Generating coloring with params:", params);
     
+    if (!apiKey || apiKey.trim() === "") {
+      throw new Error("API key is missing or invalid");
+    }
+    
     // Initialize with the creation request
     const requestOptions = {
       method: "POST",
@@ -79,20 +83,7 @@ export const generateColoring = async (
     return await pollForPredictionResult(predictionId, apiKey);
   } catch (error: any) {
     console.error("Error generating coloring page:", error);
-    toast.error(error.message || "Failed to generate coloring page");
-    
-    // For development, return mock images when API fails
-    if (process.env.NODE_ENV === "development") {
-      console.log("Using mock images for development");
-      return [
-        "https://images.unsplash.com/photo-1581344947731-c678889a686e?q=80&w=1000",
-        "https://images.unsplash.com/photo-1624526267942-ab0c0e53d1c1?q=80&w=1000",
-        "https://images.unsplash.com/photo-1614632537197-38a17061c2bd?q=80&w=1000",
-        "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=1000"
-      ];
-    }
-    
-    throw error;
+    throw error; // Re-throw the error to be handled by the caller
   }
 };
 

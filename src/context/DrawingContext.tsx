@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { generateColoring, ReplicateImageParams } from "../services/replicateService";
 import { toast } from "sonner";
@@ -103,13 +104,23 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
   const [replicateApiKey, setReplicateApiKey] = useState<string>(
     localStorage.getItem("replicateApiKey") || ""
   );
-  const [useReplicate, setUseReplicate] = useState<boolean>(false);
+  const [useReplicate, setUseReplicate] = useState<boolean>(
+    localStorage.getItem("useReplicate") === "true"
+  );
 
+  // Save API key to localStorage whenever it changes
   useEffect(() => {
     if (replicateApiKey) {
       localStorage.setItem("replicateApiKey", replicateApiKey);
+    } else {
+      localStorage.removeItem("replicateApiKey");
     }
   }, [replicateApiKey]);
+
+  // Save useReplicate state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("useReplicate", useReplicate.toString());
+  }, [useReplicate]);
 
   const generateDrawingOptions = async (description: string) => {
     setIsGenerating(true);
@@ -126,6 +137,7 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
         try {
           const imageUrls = await generateColoring(params, replicateApiKey);
           
+          // If we get here, the API call was successful
           const options: DrawingOption[] = imageUrls.map((url, index) => ({
             id: (index + 1).toString(),
             url,
@@ -136,15 +148,23 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
           toast.success("Drawings generated successfully!");
         } catch (error: any) {
           console.error("Error from Replicate API:", error);
+          toast.error(`API error: ${error.message || "Failed to generate drawings"}`);
           
-          setDrawingOptions(MOCK_DRAWINGS);
-          toast.error(`API error: ${error.message || "Failed to generate drawings"}. Using mock data instead.`);
+          // Don't fall back to mock data automatically - make the error visible to the user
+          throw error;
         }
       } else {
-        console.log("Using mock data (API key not set or Replicate not enabled)");
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setDrawingOptions(MOCK_DRAWINGS);
-        toast.success("Demo drawings loaded (using mock data)");
+        console.log("Not using Replicate API - API key not set or feature disabled");
+        toast.error("Replicate API is not properly configured. Please set your API key.");
+        
+        // Instead of silently using mock data, make it clear we're using mock data
+        if (process.env.NODE_ENV === "development") {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          setDrawingOptions(MOCK_DRAWINGS);
+          toast.info("Using mock data for development");
+        } else {
+          throw new Error("Replicate API not configured");
+        }
       }
     } catch (error: any) {
       console.error("Error generating drawings:", error);

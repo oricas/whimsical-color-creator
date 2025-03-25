@@ -27,6 +27,9 @@ const ReplicateApiKeyInput: React.FC = () => {
       
       // Show success message
       toast.success("API key saved. Replicate AI is now enabled.");
+      
+      // Trigger a page reload to ensure the context is properly updated
+      window.location.reload();
     } catch (error) {
       console.error("Error saving API key:", error);
       toast.error("Failed to save API key. Please try again.");

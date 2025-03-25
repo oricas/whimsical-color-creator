@@ -1,10 +1,10 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDrawing } from "@/context/DrawingContext";
 import { AnimatedTransition } from "./AnimatedTransition";
 import Button from "./ui-custom/Button";
-import { ChevronLeft, ArrowRight } from "lucide-react";
+import { ChevronLeft, ArrowRight, AlertCircle } from "lucide-react";
 import ReplicateApiKeyInput from "./ReplicateApiKeyInput";
 
 const GeneratedOptions = () => {
@@ -30,7 +30,7 @@ const GeneratedOptions = () => {
   };
 
   // Check if we need to show the API key input
-  const showApiKeyInput = !replicateApiKey && !useReplicate;
+  const showApiKeyInput = !replicateApiKey || !useReplicate;
 
   return (
     <AnimatedTransition className="max-w-6xl mx-auto">
@@ -57,7 +57,17 @@ const GeneratedOptions = () => {
           </p>
         </div>
 
-        {showApiKeyInput && <ReplicateApiKeyInput />}
+        {showApiKeyInput && (
+          <>
+            <div className="bg-amber-100 border border-amber-300 rounded-lg p-3 mb-2 flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
+              <p className="text-amber-800 text-sm">
+                Replicate AI is not enabled. Please set your API key below to generate real coloring pages.
+              </p>
+            </div>
+            <ReplicateApiKeyInput />
+          </>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {drawingOptions.map((drawing) => (
@@ -97,6 +107,12 @@ const GeneratedOptions = () => {
             </div>
           ))}
         </div>
+
+        {drawingOptions.length === 0 && !showApiKeyInput && (
+          <div className="p-8 text-center border border-dashed rounded-lg bg-gray-50">
+            <p className="text-muted-foreground">No drawings generated yet.</p>
+          </div>
+        )}
 
         {selectedDrawing && (
           <div className="flex justify-center mt-8">
