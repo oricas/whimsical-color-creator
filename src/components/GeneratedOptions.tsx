@@ -83,7 +83,7 @@ const GeneratedOptions = () => {
                   {description ? `"${description}"` : "Generated drawing"}
                 </p>
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
