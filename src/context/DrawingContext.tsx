@@ -1,6 +1,6 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { generateColoring, ReplicateImageParams } from "../services/replicateService";
+import { toast } from "sonner";
 
 // Mock data for development purposes
 const MOCK_DRAWINGS = [
@@ -105,68 +105,72 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
   );
   const [useReplicate, setUseReplicate] = useState<boolean>(false);
 
-  // Save API key to localStorage when it changes
   useEffect(() => {
     if (replicateApiKey) {
       localStorage.setItem("replicateApiKey", replicateApiKey);
     }
   }, [replicateApiKey]);
 
-  // Generate drawing options using Replicate or mock data
   const generateDrawingOptions = async (description: string) => {
     setIsGenerating(true);
     
     try {
       if (useReplicate && replicateApiKey) {
-        // Use Replicate API to generate images
+        console.log("Using Replicate API to generate images");
         const params: ReplicateImageParams = {
           prompt: description,
           num_outputs: 4,
           guidance_scale: 7
         };
         
-        const imageUrls = await generateColoring(params, replicateApiKey);
-        
-        // Convert the results to the format expected by the app
-        const options: DrawingOption[] = imageUrls.map((url, index) => ({
-          id: (index + 1).toString(),
-          url,
-          alt: `AI generated drawing of ${description}`
-        }));
-        
-        setDrawingOptions(options);
+        try {
+          const imageUrls = await generateColoring(params, replicateApiKey);
+          
+          const options: DrawingOption[] = imageUrls.map((url, index) => ({
+            id: (index + 1).toString(),
+            url,
+            alt: `AI generated drawing of ${description}`
+          }));
+          
+          setDrawingOptions(options);
+          toast.success("Drawings generated successfully!");
+        } catch (error: any) {
+          console.error("Error from Replicate API:", error);
+          
+          setDrawingOptions(MOCK_DRAWINGS);
+          toast.error(`API error: ${error.message || "Failed to generate drawings"}. Using mock data instead.`);
+        }
       } else {
-        // Use mock data for development or when API key is not set
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log("Using mock data (API key not set or Replicate not enabled)");
+        await new Promise(resolve => setTimeout(resolve, 1000));
         setDrawingOptions(MOCK_DRAWINGS);
+        toast.success("Demo drawings loaded (using mock data)");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating drawings:", error);
       setDrawingOptions([]);
+      toast.error(error.message || "Failed to generate drawings");
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Generate outline options
   const generateOutlineOptions = async (drawingId: string) => {
     setIsGenerating(true);
     
     try {
-      // For now, we'll use mock data for outlines
-      // In a future implementation, we could use a different model or parameters
-      // for generating different outline styles
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       setOutlineOptions(MOCK_OUTLINES);
-    } catch (error) {
+      toast.success("Outline options loaded");
+    } catch (error: any) {
       console.error("Error generating outlines:", error);
       setOutlineOptions([]);
+      toast.error(error.message || "Failed to generate outlines");
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Reset the state
   const resetState = () => {
     setDescription("");
     setDrawingOptions([]);

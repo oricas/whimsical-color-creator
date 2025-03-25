@@ -26,8 +26,10 @@ export const generateColoring = async (
   apiKey: string
 ): Promise<string[]> => {
   try {
+    console.log("Generating coloring with params:", params);
+    
     // Initialize with the creation request
-    const createResponse = await fetch(REPLICATE_API_URL, {
+    const requestOptions = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -41,17 +43,31 @@ export const generateColoring = async (
           num_outputs: params.num_outputs || 4,
           guidance_scale: params.guidance_scale || 7,
         },
-        wait: 60, // Wait up to 60 seconds for the model to complete
+        webhook: null,
+        webhook_events_filter: null
       })
-    });
+    };
+    
+    console.log("Making request to Replicate API...");
+    const createResponse = await fetch(REPLICATE_API_URL, requestOptions);
 
     if (!createResponse.ok) {
-      const errorData = await createResponse.json();
-      console.error("Replicate API error:", errorData);
-      throw new Error(errorData.detail || "Failed to generate coloring page");
+      const errorText = await createResponse.text();
+      console.error("Replicate API error response:", errorText);
+      
+      let errorMessage = "Failed to generate coloring page";
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.detail || errorMessage;
+      } catch (e) {
+        // If we can't parse the error, use the default message
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const predictionData = await createResponse.json();
+    console.log("Replicate API response:", predictionData);
     
     // If we got the result immediately (within wait time)
     if (predictionData.status === "succeeded" && predictionData.output) {
@@ -64,6 +80,18 @@ export const generateColoring = async (
   } catch (error: any) {
     console.error("Error generating coloring page:", error);
     toast.error(error.message || "Failed to generate coloring page");
+    
+    // For development, return mock images when API fails
+    if (process.env.NODE_ENV === "development") {
+      console.log("Using mock images for development");
+      return [
+        "https://images.unsplash.com/photo-1581344947731-c678889a686e?q=80&w=1000",
+        "https://images.unsplash.com/photo-1624526267942-ab0c0e53d1c1?q=80&w=1000",
+        "https://images.unsplash.com/photo-1614632537197-38a17061c2bd?q=80&w=1000",
+        "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=1000"
+      ];
+    }
+    
     throw error;
   }
 };
@@ -78,18 +106,32 @@ const pollForPredictionResult = async (
   
   while (attempts < maxAttempts) {
     try {
+      console.log(`Polling attempt ${attempts + 1} for prediction ${predictionId}`);
+      
       const response = await fetch(`${REPLICATE_API_URL}/${predictionId}`, {
         headers: {
-          "Authorization": `Token ${apiKey}`
+          "Authorization": `Token ${apiKey}`,
+          "Content-Type": "application/json"
         }
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to check prediction status");
+        const errorText = await response.text();
+        console.error("Polling error response:", errorText);
+        
+        let errorMessage = "Failed to check prediction status";
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.detail || errorMessage;
+        } catch (e) {
+          // If we can't parse the error, use the default message
+        }
+        
+        throw new Error(errorMessage);
       }
       
       const predictionData: ReplicateResponse = await response.json();
+      console.log("Polling response:", predictionData);
       
       if (predictionData.status === "succeeded" && predictionData.output) {
         return predictionData.output;

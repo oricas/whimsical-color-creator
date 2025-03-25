@@ -8,15 +8,36 @@ import { toast } from "sonner";
 
 const ReplicateApiKeyInput: React.FC = () => {
   const { replicateApiKey, setReplicateApiKey, setUseReplicate } = useDrawing();
-  const [apiKey, setApiKey] = useState(replicateApiKey);
+  const [apiKey, setApiKey] = useState(replicateApiKey || "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSave = () => {
-    if (apiKey.trim()) {
-      setReplicateApiKey(apiKey.trim());
-      setUseReplicate(true);
-      toast.success("API key saved. Replicate AI is now enabled.");
-    } else {
+  const handleSave = async () => {
+    if (!apiKey.trim()) {
       toast.error("Please enter a valid API key");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Save the API key
+      setReplicateApiKey(apiKey.trim());
+      
+      // Enable Replicate integration
+      setUseReplicate(true);
+      
+      // Show success message
+      toast.success("API key saved. Replicate AI is now enabled.");
+    } catch (error) {
+      console.error("Error saving API key:", error);
+      toast.error("Failed to save API key. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave();
     }
   };
 
@@ -34,15 +55,24 @@ const ReplicateApiKeyInput: React.FC = () => {
             placeholder="Enter your Replicate API key"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
+            onKeyDown={handleKeyDown}
             className="flex-1"
+            disabled={isSubmitting}
           />
           <Button 
             onClick={handleSave}
             className="bg-amber-600 hover:bg-amber-700 text-white"
             size="sm"
+            disabled={isSubmitting}
           >
-            <Check className="mr-2 h-4 w-4" />
-            Save Key
+            {isSubmitting ? (
+              <>Saving...</>
+            ) : (
+              <>
+                <Check className="mr-2 h-4 w-4" />
+                Save Key
+              </>
+            )}
           </Button>
         </div>
         
