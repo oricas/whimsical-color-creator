@@ -7,6 +7,7 @@ import Button from "@/components/ui-custom/Button";
 import { PencilLine, Image, Sparkles, MessageSquare, Paintbrush } from "lucide-react";
 import { AnimatedTransition } from "./AnimatedTransition";
 import { toast } from "sonner";
+import ReplicateSettings from "./ReplicateSettings";
 
 const PROMPT_EXAMPLES = [
   "Create a drawing of football players with guitars",
@@ -18,7 +19,14 @@ const PROMPT_EXAMPLES = [
 
 const DrawingForm: React.FC = () => {
   const navigate = useNavigate();
-  const { description, setDescription, isGenerating, generateDrawingOptions } = useDrawing();
+  const { 
+    description, 
+    setDescription, 
+    isGenerating, 
+    generateDrawingOptions,
+    replicateApiKey,
+    useReplicate
+  } = useDrawing();
   const [promptError, setPromptError] = useState("");
   const [showExamples, setShowExamples] = useState(false);
 
@@ -29,6 +37,11 @@ const DrawingForm: React.FC = () => {
     }
     
     setPromptError("");
+    
+    if (useReplicate && !replicateApiKey) {
+      toast.error("Please enter your Replicate API key in settings");
+      return;
+    }
     
     try {
       await generateDrawingOptions(description);
@@ -55,6 +68,10 @@ const DrawingForm: React.FC = () => {
           <p className="text-muted-foreground">
             Tell us what you'd like to color and we'll create custom coloring pages for you.
           </p>
+        </div>
+
+        <div className="flex justify-end">
+          <ReplicateSettings />
         </div>
 
         <div className="bg-card rounded-xl border border-border/60 shadow-sm p-6 space-y-4">
