@@ -154,8 +154,16 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
         } catch (error: any) {
           console.error("Error from Replicate API:", error);
           
-          // Don't fall back to mock data, propagate the error
-          throw error;
+          // Handle CORS issues specially
+          if (error.message && error.message.includes("Direct API calls from the browser")) {
+            // Use mock data in case of CORS issues but with a warning
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            setDrawingOptions(MOCK_DRAWINGS);
+            toast.warning("Using demo images due to browser API restrictions");
+          } else {
+            // Don't fall back to mock data for other errors, propagate the error
+            throw error;
+          }
         }
       } else {
         console.log("Not using Replicate API - API key not set or feature disabled");

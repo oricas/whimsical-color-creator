@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useDrawing } from "@/context/DrawingContext";
 import { AnimatedTransition } from "./AnimatedTransition";
 import Button from "./ui-custom/Button";
-import { ChevronLeft, ArrowRight, AlertCircle, RefreshCw } from "lucide-react";
+import { ChevronLeft, ArrowRight, AlertCircle, RefreshCw, ExternalLink } from "lucide-react";
 import ReplicateApiKeyInput from "./ReplicateApiKeyInput";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
@@ -21,7 +21,6 @@ const GeneratedOptions = () => {
     replicateApiKey,
     useReplicate,
     isGenerating,
-    setIsGenerating
   } = useDrawing();
   
   const [apiError, setApiError] = useState<string | null>(null);
@@ -62,8 +61,9 @@ const GeneratedOptions = () => {
   const showApiKeyInput = !replicateApiKey || !useReplicate;
 
   // Check for different error types
-  const isNetworkError = apiError && (apiError.includes("Network error") || apiError.includes("Failed to fetch"));
+  const isNetworkError = apiError && (apiError.includes("Network error") || apiError.includes("Failed to fetch") || apiError.includes("CORS"));
   const isApiKeyError = apiError && apiError.includes("API key");
+  const isCorsError = apiError && apiError.includes("Direct API calls from the browser");
 
   return (
     <AnimatedTransition className="max-w-6xl mx-auto">
@@ -101,6 +101,17 @@ const GeneratedOptions = () => {
             <ReplicateApiKeyInput />
           </>
         )}
+        
+        {isCorsError && !isGenerating && (
+          <Alert className="bg-amber-50 border-amber-200 mb-4">
+            <AlertCircle className="h-5 w-5 text-amber-600" />
+            <AlertTitle>Browser Security Notice</AlertTitle>
+            <AlertDescription className="space-y-2">
+              <p>Due to browser security restrictions (CORS), we're displaying demo images instead of connecting to the Replicate API directly.</p>
+              <p className="mt-1 text-sm">In a production app, these API requests would be made through a server-side proxy.</p>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {isApiKeyError && !isGenerating && (
           <Alert variant="destructive" className="mb-4">
@@ -120,7 +131,7 @@ const GeneratedOptions = () => {
           </Alert>
         )}
 
-        {isNetworkError && !isGenerating && (
+        {isNetworkError && !isCorsError && !isGenerating && (
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-5 w-5" />
             <AlertTitle>Connection Error</AlertTitle>
@@ -148,7 +159,7 @@ const GeneratedOptions = () => {
           </Alert>
         )}
 
-        {apiError && !isNetworkError && !isApiKeyError && !isGenerating && (
+        {apiError && !isNetworkError && !isApiKeyError && !isCorsError && !isGenerating && (
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-5 w-5" />
             <AlertTitle>Error</AlertTitle>
@@ -243,6 +254,20 @@ const GeneratedOptions = () => {
             </Button>
           </div>
         )}
+        
+        <div className="text-center text-xs text-muted-foreground mt-8 border-t pt-4">
+          <p>This demo app uses Replicate API for generating coloring pages.</p>
+          <p className="mt-1">
+            <a 
+              href="https://replicate.com/jagilley/controlnet-scribble" 
+              target="_blank" 
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-king-600 hover:underline"
+            >
+              Learn more about the model we use <ExternalLink size={12} />
+            </a>
+          </p>
+        </div>
       </div>
     </AnimatedTransition>
   );

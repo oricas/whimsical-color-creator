@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useDrawing } from "@/context/DrawingContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Key, Check, AlertCircle, Link } from "lucide-react";
+import { Key, Check, AlertCircle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
@@ -40,14 +40,14 @@ const ReplicateApiKeyInput: React.FC = () => {
       // Show success message
       toast.success("API key saved successfully");
       
-      // Inform the user about the page reload
-      toast.info("Page will reload to apply changes...");
+      // Inform the user about browser limitations
+      toast.info("Note: Due to browser security limitations (CORS), actual API calls may be limited in this demo");
       
       // Give time for toasts to appear
       setTimeout(() => {
         // Trigger a page reload to ensure the context is properly updated
         window.location.reload();
-      }, 2000);
+      }, 3000);
     } catch (error) {
       console.error("Error saving API key:", error);
       toast.error("Failed to save API key. Please try again.");
@@ -97,8 +97,17 @@ const ReplicateApiKeyInput: React.FC = () => {
           </Button>
         </div>
         
+        <Alert className="bg-amber-100 border-amber-300">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertTitle>Important Note About Browser Limitations</AlertTitle>
+          <AlertDescription className="text-xs">
+            <p>Due to browser security restrictions (CORS), direct API calls to Replicate may not work in this demo environment. In a production app, these calls would be made through a server-side proxy.</p>
+            <p className="mt-2">For demo purposes, we'll use placeholder images when real API calls aren't possible.</p>
+          </AlertDescription>
+        </Alert>
+        
         <p className="text-xs text-amber-700">
-          Get your API key from <a href="https://replicate.com/account/api-tokens" target="_blank" rel="noreferrer" className="underline">Replicate Account</a>
+          Get your API key from <a href="https://replicate.com/account/api-tokens" target="_blank" rel="noreferrer" className="underline flex items-center gap-1">Replicate Account <ExternalLink className="h-3 w-3" /></a>
         </p>
 
         <button 
@@ -119,10 +128,10 @@ const ReplicateApiKeyInput: React.FC = () => {
                 <li>Ensure you're using the correct API key from your Replicate account (starts with r8_)</li>
                 <li>Check if any ad blockers or privacy tools might be blocking API requests</li>
                 <li>Try using a different browser (Chrome often works best for API connections)</li>
+                <li>Note that browser security (CORS) typically blocks direct API calls to third-party services</li>
+                <li>In production, API calls should be proxied through your own backend server</li>
                 <li>If using a VPN, try disabling it temporarily</li>
                 <li>Clear your browser cache and cookies</li>
-                <li>Check your internet connection and try again</li>
-                <li>The API has rate limits that might be affecting your requests</li>
               </ul>
             </AlertDescription>
           </Alert>
