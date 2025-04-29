@@ -1,11 +1,13 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDrawing } from "@/context/DrawingContext";
 import { AnimatedTransition } from "./AnimatedTransition";
 import Button from "./ui-custom/Button";
-import { ChevronLeft, ArrowRight, AlertCircle } from "lucide-react";
+import { ChevronLeft, ArrowRight, AlertCircle, RefreshCw } from "lucide-react";
 import ReplicateApiKeyInput from "./ReplicateApiKeyInput";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
 
 const GeneratedOptions = () => {
   const navigate = useNavigate();
@@ -14,10 +16,15 @@ const GeneratedOptions = () => {
     selectedDrawing, 
     setSelectedDrawing, 
     generateOutlineOptions,
+    generateDrawingOptions,
     description,
     replicateApiKey,
-    useReplicate
+    useReplicate,
+    isGenerating,
+    setIsGenerating
   } = useDrawing();
+  
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const handleSelect = async (drawing) => {
     setSelectedDrawing(drawing);
@@ -29,8 +36,26 @@ const GeneratedOptions = () => {
     navigate("/create");
   };
 
+  const handleRetry = async () => {
+    if (!description) {
+      toast.error("No drawing description found. Please go back and enter a description.");
+      return;
+    }
+    
+    setApiError(null);
+    
+    try {
+      await generateDrawingOptions(description);
+    } catch (error: any) {
+      setApiError(error.message || "Failed to connect to Replicate API");
+    }
+  };
+
   // Check if we need to show the API key input
   const showApiKeyInput = !replicateApiKey || !useReplicate;
+
+  // Check for the special "Failed to fetch" error case
+  const isNetworkError = apiError && apiError.includes("Network error");
 
   return (
     <AnimatedTransition className="max-w-6xl mx-auto">
@@ -67,6 +92,25 @@ const GeneratedOptions = () => {
             </div>
             <ReplicateApiKeyInput />
           </>
+        )}
+
+        {isNetworkError && !isGenerating && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-5 w-5" />
+            <AlertTitle>Connection Error</AlertTitle>
+            <AlertDescription className="space-y-2">
+              <p>{apiError}</p>
+              <div className="flex justify-end mt-2">
+                <Button 
+                  variant="outline" 
+                  onClick={handleRetry} 
+                  icon={<RefreshCw size={16} />}
+                >
+                  Retry Connection
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -108,9 +152,25 @@ const GeneratedOptions = () => {
           ))}
         </div>
 
-        {drawingOptions.length === 0 && !showApiKeyInput && (
+        {drawingOptions.length === 0 && !showApiKeyInput && !isGenerating && (
           <div className="p-8 text-center border border-dashed rounded-lg bg-gray-50">
-            <p className="text-muted-foreground">No drawings generated yet.</p>
+            <div className="flex flex-col items-center gap-3">
+              <AlertCircle className="h-8 w-8 text-amber-500" />
+              <p className="text-muted-foreground">No drawings could be generated.</p>
+              <Button 
+                variant="outline" 
+                onClick={handleRetry} 
+                icon={<RefreshCw size={16} />}
+              >
+                Retry
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {isGenerating && (
+          <div className="p-8 text-center border border-dashed rounded-lg bg-gray-50 animate-pulse">
+            <p className="text-muted-foreground">Generating drawings...</p>
           </div>
         )}
 

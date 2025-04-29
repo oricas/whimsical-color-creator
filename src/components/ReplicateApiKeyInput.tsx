@@ -3,13 +3,15 @@ import React, { useState } from "react";
 import { useDrawing } from "@/context/DrawingContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Key, Check } from "lucide-react";
+import { Key, Check, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const ReplicateApiKeyInput: React.FC = () => {
   const { replicateApiKey, setReplicateApiKey, setUseReplicate } = useDrawing();
   const [apiKey, setApiKey] = useState(replicateApiKey || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showTroubleshooting, setShowTroubleshooting] = useState(false);
 
   const handleSave = async () => {
     if (!apiKey.trim()) {
@@ -82,6 +84,30 @@ const ReplicateApiKeyInput: React.FC = () => {
         <p className="text-xs text-amber-700">
           Get your API key from <a href="https://replicate.com/account/api-tokens" target="_blank" rel="noreferrer" className="underline">Replicate Account</a>
         </p>
+
+        <button 
+          type="button" 
+          onClick={() => setShowTroubleshooting(!showTroubleshooting)}
+          className="text-xs text-amber-700 underline"
+        >
+          {showTroubleshooting ? "Hide troubleshooting tips" : "Having connection issues?"}
+        </button>
+        
+        {showTroubleshooting && (
+          <Alert className="bg-amber-50 border-amber-200">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertTitle>Connection Troubleshooting</AlertTitle>
+            <AlertDescription className="text-xs space-y-2">
+              <p>If you're experiencing "Failed to fetch" errors:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Ensure you're using the correct API key from your Replicate account</li>
+                <li>Check if any ad blockers or privacy tools might be blocking API requests</li>
+                <li>Try using a different browser or network connection</li>
+                <li>The API has rate limits that might be affecting your requests</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
     </div>
   );

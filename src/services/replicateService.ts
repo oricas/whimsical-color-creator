@@ -53,34 +53,44 @@ export const generateColoring = async (
     };
     
     console.log("Making request to Replicate API...");
-    const createResponse = await fetch(REPLICATE_API_URL, requestOptions);
+    
+    try {
+      const createResponse = await fetch(REPLICATE_API_URL, requestOptions);
 
-    if (!createResponse.ok) {
-      const errorText = await createResponse.text();
-      console.error("Replicate API error response:", errorText);
+      if (!createResponse.ok) {
+        const errorText = await createResponse.text();
+        console.error("Replicate API error response:", errorText);
+        
+        let errorMessage = "Failed to generate coloring page";
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.detail || errorMessage;
+        } catch (e) {
+          // If we can't parse the error, use the default message
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      const predictionData = await createResponse.json();
+      console.log("Replicate API response:", predictionData);
       
-      let errorMessage = "Failed to generate coloring page";
-      try {
-        const errorData = JSON.parse(errorText);
-        errorMessage = errorData.detail || errorMessage;
-      } catch (e) {
-        // If we can't parse the error, use the default message
+      // If we got the result immediately (within wait time)
+      if (predictionData.status === "succeeded" && predictionData.output) {
+        return predictionData.output;
       }
       
-      throw new Error(errorMessage);
+      // If we need to poll for the result
+      const predictionId = predictionData.id;
+      return await pollForPredictionResult(predictionId, apiKey);
+    } catch (error) {
+      // Specific handling for network errors
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        console.error("Network error connecting to Replicate API");
+        throw new Error("Network error: Unable to connect to Replicate API. This may be due to network connectivity issues, ad blockers, or CORS restrictions. Please check your connection and try again.");
+      }
+      throw error;
     }
-
-    const predictionData = await createResponse.json();
-    console.log("Replicate API response:", predictionData);
-    
-    // If we got the result immediately (within wait time)
-    if (predictionData.status === "succeeded" && predictionData.output) {
-      return predictionData.output;
-    }
-    
-    // If we need to poll for the result
-    const predictionId = predictionData.id;
-    return await pollForPredictionResult(predictionId, apiKey);
   } catch (error: any) {
     console.error("Error generating coloring page:", error);
     throw error; // Re-throw the error to be handled by the caller
@@ -99,35 +109,43 @@ const pollForPredictionResult = async (
     try {
       console.log(`Polling attempt ${attempts + 1} for prediction ${predictionId}`);
       
-      const response = await fetch(`${REPLICATE_API_URL}/${predictionId}`, {
-        headers: {
-          "Authorization": `Token ${apiKey}`,
-          "Content-Type": "application/json"
-        }
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Polling error response:", errorText);
+      try {
+        const response = await fetch(`${REPLICATE_API_URL}/${predictionId}`, {
+          headers: {
+            "Authorization": `Token ${apiKey}`,
+            "Content-Type": "application/json"
+          }
+        });
         
-        let errorMessage = "Failed to check prediction status";
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.detail || errorMessage;
-        } catch (e) {
-          // If we can't parse the error, use the default message
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Polling error response:", errorText);
+          
+          let errorMessage = "Failed to check prediction status";
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.detail || errorMessage;
+          } catch (e) {
+            // If we can't parse the error, use the default message
+          }
+          
+          throw new Error(errorMessage);
         }
         
-        throw new Error(errorMessage);
-      }
-      
-      const predictionData: ReplicateResponse = await response.json();
-      console.log("Polling response:", predictionData);
-      
-      if (predictionData.status === "succeeded" && predictionData.output) {
-        return predictionData.output;
-      } else if (predictionData.status === "failed" || predictionData.status === "canceled") {
-        throw new Error(predictionData.error || "Generation failed or was canceled");
+        const predictionData: ReplicateResponse = await response.json();
+        console.log("Polling response:", predictionData);
+        
+        if (predictionData.status === "succeeded" && predictionData.output) {
+          return predictionData.output;
+        } else if (predictionData.status === "failed" || predictionData.status === "canceled") {
+          throw new Error(predictionData.error || "Generation failed or was canceled");
+        }
+      } catch (error) {
+        if (error instanceof TypeError && error.message === 'Failed to fetch') {
+          console.error("Network error during polling");
+          throw new Error("Network error: Unable to connect to Replicate API while checking generation status.");
+        }
+        throw error;
       }
       
       // Wait 10 seconds before polling again
