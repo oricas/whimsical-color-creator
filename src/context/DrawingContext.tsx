@@ -124,6 +124,7 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const generateDrawingOptions = async (description: string) => {
     setIsGenerating(true);
+    setDrawingOptions([]); // Clear previous results
     
     try {
       if (useReplicate && replicateApiKey) {
@@ -144,32 +145,41 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
             alt: `AI generated drawing of ${description}`
           }));
           
+          if (options.length === 0) {
+            throw new Error("No images were generated. Please try again with a different description.");
+          }
+          
           setDrawingOptions(options);
           toast.success("Drawings generated successfully!");
         } catch (error: any) {
           console.error("Error from Replicate API:", error);
-          toast.error(`API error: ${error.message || "Failed to generate drawings"}`);
           
-          // Don't fall back to mock data automatically - make the error visible to the user
+          // Don't fall back to mock data, propagate the error
           throw error;
         }
       } else {
         console.log("Not using Replicate API - API key not set or feature disabled");
-        toast.error("Replicate API is not properly configured. Please set your API key.");
         
-        // Instead of silently using mock data, make it clear we're using mock data
-        if (process.env.NODE_ENV === "development") {
+        // Don't use mock data automatically if Replicate should be enabled but isn't properly configured
+        if (useReplicate) {
+          throw new Error("Replicate API is not properly configured. Please set your API key.");
+        }
+        
+        // Only use mock data in development or if Replicate is explicitly disabled
+        if (process.env.NODE_ENV === "development" && !useReplicate) {
           await new Promise(resolve => setTimeout(resolve, 1000));
           setDrawingOptions(MOCK_DRAWINGS);
           toast.info("Using mock data for development");
         } else {
-          throw new Error("Replicate API not configured");
+          throw new Error("Replicate API is not enabled. Please enable it in settings.");
         }
       }
     } catch (error: any) {
       console.error("Error generating drawings:", error);
       setDrawingOptions([]);
-      toast.error(error.message || "Failed to generate drawings");
+      
+      // Propagate the error up to the component for display
+      throw error;
     } finally {
       setIsGenerating(false);
     }
@@ -179,6 +189,7 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsGenerating(true);
     
     try {
+      // For now we're using mock outlines, but this can be updated to use the real API
       await new Promise(resolve => setTimeout(resolve, 1000));
       setOutlineOptions(MOCK_OUTLINES);
       toast.success("Outline options loaded");

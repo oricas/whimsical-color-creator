@@ -1,9 +1,9 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDrawing } from "@/context/DrawingContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Key, Check, AlertCircle } from "lucide-react";
+import { Key, Check, AlertCircle, Link } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
@@ -12,6 +12,11 @@ const ReplicateApiKeyInput: React.FC = () => {
   const [apiKey, setApiKey] = useState(replicateApiKey || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
+  
+  useEffect(() => {
+    // Update local state if the context value changes
+    setApiKey(replicateApiKey || "");
+  }, [replicateApiKey]);
 
   const handleSave = async () => {
     if (!apiKey.trim()) {
@@ -21,6 +26,11 @@ const ReplicateApiKeyInput: React.FC = () => {
 
     setIsSubmitting(true);
     try {
+      // Verify API key format
+      if (!apiKey.startsWith("r8_") && !apiKey.startsWith("r8-")) {
+        toast.warning("Replicate API keys typically start with 'r8_'. Please verify your key.");
+      }
+      
       // Save the API key
       setReplicateApiKey(apiKey.trim());
       
@@ -28,10 +38,16 @@ const ReplicateApiKeyInput: React.FC = () => {
       setUseReplicate(true);
       
       // Show success message
-      toast.success("API key saved. Replicate AI is now enabled.");
+      toast.success("API key saved successfully");
       
-      // Trigger a page reload to ensure the context is properly updated
-      window.location.reload();
+      // Inform the user about the page reload
+      toast.info("Page will reload to apply changes...");
+      
+      // Give time for toasts to appear
+      setTimeout(() => {
+        // Trigger a page reload to ensure the context is properly updated
+        window.location.reload();
+      }, 2000);
     } catch (error) {
       console.error("Error saving API key:", error);
       toast.error("Failed to save API key. Please try again.");
@@ -100,9 +116,12 @@ const ReplicateApiKeyInput: React.FC = () => {
             <AlertDescription className="text-xs space-y-2">
               <p>If you're experiencing "Failed to fetch" errors:</p>
               <ul className="list-disc pl-5 space-y-1">
-                <li>Ensure you're using the correct API key from your Replicate account</li>
+                <li>Ensure you're using the correct API key from your Replicate account (starts with r8_)</li>
                 <li>Check if any ad blockers or privacy tools might be blocking API requests</li>
-                <li>Try using a different browser or network connection</li>
+                <li>Try using a different browser (Chrome often works best for API connections)</li>
+                <li>If using a VPN, try disabling it temporarily</li>
+                <li>Clear your browser cache and cookies</li>
+                <li>Check your internet connection and try again</li>
                 <li>The API has rate limits that might be affecting your requests</li>
               </ul>
             </AlertDescription>

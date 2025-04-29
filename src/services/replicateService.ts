@@ -21,6 +21,12 @@ export interface ReplicateResponse {
   error: string | null;
 }
 
+/**
+ * Generates coloring page images using the Replicate API.
+ * @param params - Parameters for the image generation
+ * @param apiKey - Replicate API key
+ * @returns A Promise resolving to an array of image URLs
+ */
 export const generateColoring = async (
   params: ReplicateImageParams, 
   apiKey: string
@@ -32,7 +38,7 @@ export const generateColoring = async (
       throw new Error("API key is missing or invalid");
     }
     
-    // Initialize with the creation request
+    // Set up request options
     const requestOptions = {
       method: "POST",
       headers: {
@@ -55,8 +61,10 @@ export const generateColoring = async (
     console.log("Making request to Replicate API...");
     
     try {
+      // Attempt to create the prediction
       const createResponse = await fetch(REPLICATE_API_URL, requestOptions);
-
+      
+      // Handle HTTP error responses
       if (!createResponse.ok) {
         const errorText = await createResponse.text();
         console.error("Replicate API error response:", errorText);
@@ -64,7 +72,18 @@ export const generateColoring = async (
         let errorMessage = "Failed to generate coloring page";
         try {
           const errorData = JSON.parse(errorText);
-          errorMessage = errorData.detail || errorMessage;
+          if (errorData.detail) {
+            // Format API error message
+            errorMessage = typeof errorData.detail === 'string' 
+              ? errorData.detail 
+              : JSON.stringify(errorData.detail);
+              
+            // Check for common API key issues
+            if (errorMessage.includes("Authentication credentials were not provided") || 
+                errorMessage.includes("Invalid token")) {
+              errorMessage = "Invalid API key. Please check your Replicate API key and try again.";
+            }
+          }
         } catch (e) {
           // If we can't parse the error, use the default message
         }
@@ -84,26 +103,28 @@ export const generateColoring = async (
       const predictionId = predictionData.id;
       return await pollForPredictionResult(predictionId, apiKey);
     } catch (error) {
-      // Specific handling for network errors
+      // Handle network errors specifically
       if (error instanceof TypeError && error.message === 'Failed to fetch') {
         console.error("Network error connecting to Replicate API");
-        throw new Error("Network error: Unable to connect to Replicate API. This may be due to network connectivity issues, ad blockers, or CORS restrictions. Please check your connection and try again.");
+        throw new Error("Network error: Unable to connect to Replicate API. This may be due to network connectivity issues, ad blockers, browser extensions, or CORS restrictions. Please check your connection and try again.");
       }
       throw error;
     }
   } catch (error: any) {
     console.error("Error generating coloring page:", error);
-    throw error; // Re-throw the error to be handled by the caller
+    throw error; // Re-throw to be handled by the caller
   }
 };
 
 // Helper function to poll for the prediction result
 const pollForPredictionResult = async (
   predictionId: string, 
-  apiKey: string
+  apiKey: string,
+  retryCount = 0
 ): Promise<string[]> => {
-  let attempts = 0;
+  const maxRetries = 3; // Number of retries for transient errors
   const maxAttempts = 30; // Poll for up to 5 minutes (30 attempts * 10 seconds)
+  let attempts = 0;
   
   while (attempts < maxAttempts) {
     try {
@@ -143,7 +164,14 @@ const pollForPredictionResult = async (
       } catch (error) {
         if (error instanceof TypeError && error.message === 'Failed to fetch') {
           console.error("Network error during polling");
-          throw new Error("Network error: Unable to connect to Replicate API while checking generation status.");
+          
+          // Retry for transient network errors
+          if (retryCount < maxRetries) {
+            console.log(`Retrying after network error (${retryCount + 1}/${maxRetries})`);
+            return pollForPredictionResult(predictionId, apiKey, retryCount + 1);
+          }
+          
+          throw new Error("Network error: Unable to connect to Replicate API while checking generation status. Please check your internet connection.");
         }
         throw error;
       }
@@ -157,5 +185,5 @@ const pollForPredictionResult = async (
     }
   }
   
-  throw new Error("Timeout waiting for coloring page generation");
+  throw new Error("Timeout waiting for coloring page generation. The process is taking longer than expected.");
 };
