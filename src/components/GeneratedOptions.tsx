@@ -4,10 +4,19 @@ import { useNavigate } from "react-router-dom";
 import { useDrawing } from "@/context/DrawingContext";
 import { AnimatedTransition } from "./AnimatedTransition";
 import Button from "./ui-custom/Button";
-import { ChevronLeft, ArrowRight, AlertCircle, RefreshCw, ExternalLink } from "lucide-react";
-import ReplicateApiKeyInput from "./ReplicateApiKeyInput";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { ChevronLeft, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+
+// Import sub-components
+import ApiKeyPrompt from "./generated-options/ApiKeyPrompt";
+import CorsAlert from "./generated-options/CorsAlert";
+import ApiKeyErrorAlert from "./generated-options/ApiKeyErrorAlert";
+import NetworkErrorAlert from "./generated-options/NetworkErrorAlert";
+import GeneralErrorAlert from "./generated-options/GeneralErrorAlert";
+import LoadingState from "./generated-options/LoadingState";
+import EmptyState from "./generated-options/EmptyState";
+import DrawingGrid from "./generated-options/DrawingGrid";
+import FooterInfo from "./generated-options/FooterInfo";
 
 const GeneratedOptions = () => {
   const navigate = useNavigate();
@@ -90,157 +99,43 @@ const GeneratedOptions = () => {
           </p>
         </div>
 
-        {showApiKeyInput && (
-          <>
-            <div className="bg-amber-100 border border-amber-300 rounded-lg p-3 mb-2 flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
-              <p className="text-amber-800 text-sm">
-                Replicate AI is not enabled. Please set your API key below to generate real coloring pages.
-              </p>
-            </div>
-            <ReplicateApiKeyInput />
-          </>
-        )}
+        {showApiKeyInput && <ApiKeyPrompt />}
         
-        {isCorsError && !isGenerating && (
-          <Alert className="bg-amber-50 border-amber-200 mb-4">
-            <AlertCircle className="h-5 w-5 text-amber-600" />
-            <AlertTitle>Browser Security Notice</AlertTitle>
-            <AlertDescription className="space-y-2">
-              <p>Due to browser security restrictions (CORS), we're displaying demo images instead of connecting to the Replicate API directly.</p>
-              <p className="mt-1 text-sm">In a production app, these API requests would be made through a server-side proxy.</p>
-            </AlertDescription>
-          </Alert>
-        )}
+        {isCorsError && !isGenerating && <CorsAlert />}
 
         {isApiKeyError && !isGenerating && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-5 w-5" />
-            <AlertTitle>API Key Error</AlertTitle>
-            <AlertDescription className="space-y-2">
-              <p>{apiError}</p>
-              <div className="flex justify-end mt-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setApiError(null)}
-                >
-                  Dismiss
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
+          <ApiKeyErrorAlert 
+            error={apiError} 
+            onDismiss={() => setApiError(null)} 
+          />
         )}
 
         {isNetworkError && !isCorsError && !isGenerating && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-5 w-5" />
-            <AlertTitle>Connection Error</AlertTitle>
-            <AlertDescription className="space-y-2">
-              <p>{apiError}</p>
-              <div className="space-y-2 mt-2 text-sm text-red-800">
-                <p>Possible solutions:</p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>Check your internet connection</li>
-                  <li>Disable any ad blockers or browser extensions</li>
-                  <li>Try a different browser (Chrome often works best)</li>
-                  <li>If using a VPN, try disabling it temporarily</li>
-                </ul>
-              </div>
-              <div className="flex justify-end mt-2">
-                <Button 
-                  variant="outline" 
-                  onClick={handleRetry} 
-                  icon={<RefreshCw size={16} />}
-                >
-                  Retry Connection
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
+          <NetworkErrorAlert 
+            error={apiError} 
+            onRetry={handleRetry} 
+          />
         )}
 
         {apiError && !isNetworkError && !isApiKeyError && !isCorsError && !isGenerating && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-5 w-5" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription className="space-y-2">
-              <p>{apiError}</p>
-              <div className="flex justify-end mt-2">
-                <Button 
-                  variant="outline" 
-                  onClick={handleRetry} 
-                  icon={<RefreshCw size={16} />}
-                >
-                  Retry
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
+          <GeneralErrorAlert 
+            error={apiError} 
+            onRetry={handleRetry} 
+          />
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {drawingOptions.map((drawing) => (
-            <div
-              key={drawing.id}
-              className={`border rounded-xl overflow-hidden cursor-pointer transition-all ${
-                selectedDrawing?.id === drawing.id
-                  ? "ring-2 ring-king-500 border-king-300"
-                  : "hover:border-king-300 hover:shadow-md"
-              }`}
-              onClick={() => setSelectedDrawing(drawing)}
-            >
-              <div className="aspect-square bg-gray-50">
-                <img
-                  src={drawing.url}
-                  alt={drawing.alt}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-              <div className="p-4 flex justify-between items-center">
-                <p className="text-sm text-muted-foreground truncate">
-                  {description ? `"${description}"` : "Generated drawing"}
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSelect(drawing);
-                  }}
-                  icon={<ArrowRight size={16} />}
-                >
-                  Select
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
+        {drawingOptions.length > 0 && (
+          <DrawingGrid 
+            setSelectedDrawing={setSelectedDrawing}
+            description={description}
+          />
+        )}
 
         {drawingOptions.length === 0 && !showApiKeyInput && !isGenerating && !apiError && (
-          <div className="p-8 text-center border border-dashed rounded-lg bg-gray-50">
-            <div className="flex flex-col items-center gap-3">
-              <AlertCircle className="h-8 w-8 text-amber-500" />
-              <p className="text-muted-foreground">No drawings could be generated.</p>
-              <Button 
-                variant="outline" 
-                onClick={handleRetry} 
-                icon={<RefreshCw size={16} />}
-              >
-                Retry
-              </Button>
-            </div>
-          </div>
+          <EmptyState onRetry={handleRetry} />
         )}
 
-        {isGenerating && (
-          <div className="p-8 text-center border border-dashed rounded-lg bg-gray-50">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-muted-foreground">Generating drawings... This may take a moment.</p>
-            </div>
-          </div>
-        )}
+        {isGenerating && <LoadingState />}
 
         {selectedDrawing && (
           <div className="flex justify-center mt-8">
@@ -255,19 +150,7 @@ const GeneratedOptions = () => {
           </div>
         )}
         
-        <div className="text-center text-xs text-muted-foreground mt-8 border-t pt-4">
-          <p>This demo app uses Replicate API for generating coloring pages.</p>
-          <p className="mt-1">
-            <a 
-              href="https://replicate.com/jagilley/controlnet-scribble" 
-              target="_blank" 
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 text-king-600 hover:underline"
-            >
-              Learn more about the model we use <ExternalLink size={12} />
-            </a>
-          </p>
-        </div>
+        <FooterInfo />
       </div>
     </AnimatedTransition>
   );
