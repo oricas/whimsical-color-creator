@@ -1,93 +1,9 @@
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { generateColoring, ReplicateImageParams } from "../services/replicateService";
+import React, { createContext, useState, useEffect } from "react";
+import { DrawingContextType, DrawingOption, PrintSettings } from "../types/drawing";
+import { generateDrawings, generateOutlines } from "../services/drawingService";
+import { initialPrintSettings } from "../data/mockDrawings";
 import { toast } from "sonner";
-
-// Mock data for development purposes
-const MOCK_DRAWINGS = [
-  {
-    id: "1",
-    url: "https://images.unsplash.com/photo-1581344947731-c678889a686e?q=80&w=1000",
-    alt: "Football players running on field"
-  },
-  {
-    id: "2",
-    url: "https://images.unsplash.com/photo-1624526267942-ab0c0e53d1c1?q=80&w=1000",
-    alt: "Football players with guitars"
-  },
-  {
-    id: "3",
-    url: "https://images.unsplash.com/photo-1614632537197-38a17061c2bd?q=80&w=1000",
-    alt: "Children playing football"
-  },
-  {
-    id: "4",
-    url: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=1000",
-    alt: "Football stadium"
-  }
-];
-
-const MOCK_OUTLINES = [
-  {
-    id: "1",
-    url: "https://images.unsplash.com/photo-1581344947731-c678889a686e?q=80&w=1000&auto=format&fit=crop&ixlib=rb-4.0.3",
-    alt: "Outline 1"
-  },
-  {
-    id: "2",
-    url: "https://images.unsplash.com/photo-1624526267942-ab0c0e53d1c1?q=80&w=1000&auto=format&fit=crop&ixlib=rb-4.0.3",
-    alt: "Outline 2"
-  },
-  {
-    id: "3",
-    url: "https://images.unsplash.com/photo-1614632537197-38a17061c2bd?q=80&w=1000&auto=format&fit=crop&ixlib=rb-4.0.3",
-    alt: "Outline 3"
-  }
-];
-
-interface DrawingOption {
-  id: string;
-  url: string;
-  alt: string;
-}
-
-interface PrintSettings {
-  pageSize: "A4" | "A3";
-  outlineThickness: "thin" | "medium" | "thick";
-  outlineColor: "black" | "gray" | "blue";
-  copies: number;
-}
-
-interface DrawingContextType {
-  description: string;
-  setDescription: (desc: string) => void;
-  isGenerating: boolean;
-  setIsGenerating: (state: boolean) => void;
-  drawingOptions: DrawingOption[];
-  setDrawingOptions: (options: DrawingOption[]) => void;
-  selectedDrawing: DrawingOption | null;
-  setSelectedDrawing: (drawing: DrawingOption | null) => void;
-  outlineOptions: DrawingOption[];
-  setOutlineOptions: (options: DrawingOption[]) => void;
-  selectedOutline: DrawingOption | null;
-  setSelectedOutline: (outline: DrawingOption | null) => void;
-  printSettings: PrintSettings;
-  setPrintSettings: (settings: PrintSettings) => void;
-  generateDrawingOptions: (description: string) => Promise<void>;
-  generateOutlineOptions: (drawingId: string) => Promise<void>;
-  resetState: () => void;
-  replicateApiKey: string;
-  setReplicateApiKey: (key: string) => void;
-  useReplicate: boolean;
-  setUseReplicate: (use: boolean) => void;
-}
-
-const initialPrintSettings: PrintSettings = {
-  pageSize: "A4",
-  outlineThickness: "medium",
-  outlineColor: "black",
-  copies: 1
-};
 
 const DrawingContext = createContext<DrawingContextType | undefined>(undefined);
 
@@ -127,61 +43,8 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
     setDrawingOptions([]); // Clear previous results
     
     try {
-      if (useReplicate && replicateApiKey) {
-        console.log("Using Replicate API to generate images");
-        const params: ReplicateImageParams = {
-          prompt: description,
-          num_outputs: 4,
-          guidance_scale: 7
-        };
-        
-        try {
-          const imageUrls = await generateColoring(params, replicateApiKey);
-          
-          // If we get here, the API call was successful
-          const options: DrawingOption[] = imageUrls.map((url, index) => ({
-            id: (index + 1).toString(),
-            url,
-            alt: `AI generated drawing of ${description}`
-          }));
-          
-          if (options.length === 0) {
-            throw new Error("No images were generated. Please try again with a different description.");
-          }
-          
-          setDrawingOptions(options);
-          toast.success("Drawings generated successfully!");
-        } catch (error: any) {
-          console.error("Error from Replicate API:", error);
-          
-          // Handle CORS issues specially
-          if (error.message && error.message.includes("Direct API calls from the browser")) {
-            // Use mock data in case of CORS issues but with a warning
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            setDrawingOptions(MOCK_DRAWINGS);
-            toast.warning("Using demo images due to browser API restrictions");
-          } else {
-            // Don't fall back to mock data for other errors, propagate the error
-            throw error;
-          }
-        }
-      } else {
-        console.log("Not using Replicate API - API key not set or feature disabled");
-        
-        // Don't use mock data automatically if Replicate should be enabled but isn't properly configured
-        if (useReplicate) {
-          throw new Error("Replicate API is not properly configured. Please set your API key.");
-        }
-        
-        // Only use mock data in development or if Replicate is explicitly disabled
-        if (process.env.NODE_ENV === "development" && !useReplicate) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          setDrawingOptions(MOCK_DRAWINGS);
-          toast.info("Using mock data for development");
-        } else {
-          throw new Error("Replicate API is not enabled. Please enable it in settings.");
-        }
-      }
+      const options = await generateDrawings(description, useReplicate, replicateApiKey);
+      setDrawingOptions(options);
     } catch (error: any) {
       console.error("Error generating drawings:", error);
       setDrawingOptions([]);
@@ -197,10 +60,8 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsGenerating(true);
     
     try {
-      // For now we're using mock outlines, but this can be updated to use the real API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setOutlineOptions(MOCK_OUTLINES);
-      toast.success("Outline options loaded");
+      const options = await generateOutlines(drawingId);
+      setOutlineOptions(options);
     } catch (error: any) {
       console.error("Error generating outlines:", error);
       setOutlineOptions([]);
@@ -250,10 +111,4 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
-export const useDrawing = () => {
-  const context = useContext(DrawingContext);
-  if (context === undefined) {
-    throw new Error("useDrawing must be used within a DrawingProvider");
-  }
-  return context;
-};
+export { DrawingContext };
