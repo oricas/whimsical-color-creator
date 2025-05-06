@@ -1,9 +1,10 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, ImageOff } from "lucide-react";
+import { ArrowRight, ImageOff, Download } from "lucide-react";
 import { useDrawing } from "@/context/DrawingContext";
 import Button from "../ui-custom/Button";
+import { toast } from "sonner";
 
 interface DrawingGridProps {
   setSelectedDrawing: (drawing: any) => void;
@@ -15,7 +16,18 @@ const DrawingGrid: React.FC<DrawingGridProps> = ({ setSelectedDrawing, descripti
   const { drawingOptions, selectedDrawing, generateOutlineOptions } = useDrawing();
   const [imageLoadStates, setImageLoadStates] = useState<Record<string, {loaded: boolean, error: boolean}>>({});
 
+  // Pre-load images when component mounts or drawingOptions change
+  useEffect(() => {
+    drawingOptions.forEach(drawing => {
+      const img = new Image();
+      img.src = drawing.url;
+      img.onload = () => handleImageLoad(drawing.id);
+      img.onerror = () => handleImageError(drawing.id);
+    });
+  }, [drawingOptions]);
+
   const handleSelect = async (drawing) => {
+    toast.info("Preparing outlines...");
     setSelectedDrawing(drawing);
     await generateOutlineOptions(drawing.id);
     navigate("/create/outlines");
@@ -34,6 +46,17 @@ const DrawingGrid: React.FC<DrawingGridProps> = ({ setSelectedDrawing, descripti
       [drawingId]: { loaded: true, error: true }
     }));
     console.error(`Failed to load image for drawing ${drawingId}`);
+  };
+
+  const handleDownloadImage = (e: React.MouseEvent, url: string) => {
+    e.stopPropagation();
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `drawing-${new Date().getTime()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Image downloaded successfully!");
   };
 
   return (
@@ -69,6 +92,18 @@ const DrawingGrid: React.FC<DrawingGridProps> = ({ setSelectedDrawing, descripti
                 onLoad={() => handleImageLoad(drawing.id)}
                 onError={() => handleImageError(drawing.id)}
               />
+            )}
+            
+            {imageLoadStates[drawing.id]?.loaded && !imageLoadStates[drawing.id]?.error && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="absolute top-2 right-2 bg-white/70 hover:bg-white"
+                onClick={(e) => handleDownloadImage(e, drawing.url)}
+                icon={<Download size={16} />}
+              >
+                Save
+              </Button>
             )}
           </div>
           <div className="p-4 flex justify-between items-center">

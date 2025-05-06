@@ -2,12 +2,21 @@
 import React from "react";
 import { AlertCircle, RefreshCw, ImagePlus } from "lucide-react";
 import Button from "../ui-custom/Button";
+import { toast } from "sonner";
 
 interface EmptyStateProps {
   onRetry: () => void;
 }
 
 const EmptyState: React.FC<EmptyStateProps> = ({ onRetry }) => {
+  const handleGenerateClick = () => {
+    // Show toast to confirm action is happening
+    toast.info("Generating drawings...");
+    
+    // Call the retry function
+    onRetry();
+  };
+
   return (
     <div className="p-8 text-center border border-dashed rounded-lg bg-gray-50">
       <div className="flex flex-col items-center gap-3">
@@ -18,7 +27,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ onRetry }) => {
         </div>
         <Button 
           variant="premium" 
-          onClick={onRetry} 
+          onClick={handleGenerateClick} 
           icon={<RefreshCw size={16} />}
           className="mt-2"
         >
