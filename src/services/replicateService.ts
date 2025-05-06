@@ -45,12 +45,12 @@ export const generateColoring = async (
     if (HAS_CORS_ISSUE) {
       console.log("Using workaround for CORS issues");
       
-      // For development testing, return mock images if we can't actually use the API
+      // For development testing, return mock images
       if (process.env.NODE_ENV === "development") {
         console.log("In development mode - returning mock images due to CORS restrictions");
         await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
         
-        // Return some placeholder images - these should be replaced with actual API results in production
+        // Return demo images
         return [
           "https://replicate.delivery/pbxt/GXzs77S3MbbPX4lyJPh7gJvn1C4Bbdk2GS4BGNizf3yNBnJQA/out-0.png",
           "https://replicate.delivery/pbxt/Mfn3NF1BYjRJE1rkz2QqMvGTgJK6uCWGdJWVmfn1vMalznHiA/out-0.png",
@@ -135,7 +135,7 @@ export const generateColoring = async (
       // Handle network errors specifically
       if (error instanceof TypeError && error.message === 'Failed to fetch') {
         console.error("Network error connecting to Replicate API");
-        throw new Error("Network error: Unable to connect to Replicate API. This may be due to network connectivity issues, ad blockers, browser extensions, or CORS restrictions. Please check your connection and try again.");
+        throw new Error("Network error: Unable to connect to Replicate API. This may be due to network connectivity issues, ad blockers, browser extensions, or CORS restrictions.");
       }
       throw error;
     }
@@ -200,7 +200,7 @@ const pollForPredictionResult = async (
             return pollForPredictionResult(predictionId, apiKey, retryCount + 1);
           }
           
-          throw new Error("Network error: Unable to connect to Replicate API while checking generation status. Please check your internet connection.");
+          throw new Error("Network error: Unable to connect to Replicate API while checking generation status.");
         }
         throw error;
       }

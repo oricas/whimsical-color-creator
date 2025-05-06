@@ -160,6 +160,11 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
             await new Promise(resolve => setTimeout(resolve, 1000));
             setDrawingOptions(MOCK_DRAWINGS);
             toast.warning("Using demo images due to browser API restrictions");
+          } else if (error.message && error.message.includes("Failed to fetch")) {
+            // Handle network errors
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            setDrawingOptions(MOCK_DRAWINGS);
+            toast.warning("Network error connecting to API. Using demo images instead.");
           } else {
             // Don't fall back to mock data for other errors, propagate the error
             throw error;
