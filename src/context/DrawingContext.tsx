@@ -57,13 +57,13 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
   const [selectedOutline, setSelectedOutline] = useState<DrawingOption | null>(null);
   const [printSettings, setPrintSettings] = useState<PrintSettings>(initialPrintSettings);
 
-  // Generate drawing options using Supabase Edge Functions
+  // Generate drawing options using Supabase Edge Functions - now generates regular images
   const generateDrawingOptions = async (description: string) => {
     setIsGenerating(true);
     
     try {
       const imageService = new SupabaseImageService();
-      const images = await imageService.generateImages(description, 4);
+      const images = await imageService.generateImages(description, 2); // Only 2 options
       setDrawingOptions(images);
     } catch (error) {
       console.error("Error generating drawings:", error);

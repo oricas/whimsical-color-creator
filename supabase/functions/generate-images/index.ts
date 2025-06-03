@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, count = 4 } = await req.json();
+    const { prompt, count = 2 } = await req.json();
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
     if (!openaiApiKey) {
@@ -31,11 +31,11 @@ serve(async (req) => {
       );
     }
 
-    console.log('Generating images for prompt:', prompt);
+    console.log('Generating regular images for prompt:', prompt);
 
-    // Generate multiple variations by calling the API multiple times
+    // Generate regular images (not coloring pages)
     const images = [];
-    for (let i = 0; i < Math.min(count, 4); i++) {
+    for (let i = 0; i < Math.min(count, 2); i++) {
       try {
         const response = await fetch('https://api.openai.com/v1/images/generations', {
           method: 'POST',
@@ -44,7 +44,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            prompt: `Create a detailed, child-friendly coloring page design: ${prompt}. Make it suitable for coloring with clear, bold outlines and interesting details. Style variation ${i + 1}.`,
+            prompt: `Create a detailed, colorful illustration: ${prompt}. High quality, vibrant colors, detailed artwork.`,
             model: 'dall-e-3',
             n: 1,
             size: '1024x1024',

@@ -34,26 +34,28 @@ serve(async (req) => {
     console.log('Converting image to outline:', imageUrl, 'style:', style);
 
     const stylePrompts = {
-      simple: 'Convert this image into a simple black and white line drawing suitable for children to color. Use thick, clear outlines with minimal detail.',
-      detailed: 'Convert this image into a detailed black and white coloring page with medium-thick outlines and moderate detail level.',
-      artistic: 'Convert this image into an artistic black and white line drawing with varied line weights and intricate details suitable for adult coloring.'
+      simple: 'Convert this into a simple black and white coloring page with thick, clear outlines. Remove all colors and fill, keep only the main shapes and outlines. Make it suitable for children to color.',
+      detailed: 'Convert this into a detailed black and white coloring page with medium-thick outlines and moderate detail level. Remove all colors, keep line art only.',
+      artistic: 'Convert this into an artistic black and white line drawing with varied line weights and intricate details suitable for adult coloring. Remove all colors, keep only outlines and line art.'
     };
 
-    // Generate 3 different outline variations
+    // Generate 3 different outline variations of the selected image
     const outlines = [];
     for (let i = 0; i < 3; i++) {
       try {
-        const response = await fetch('https://api.openai.com/v1/images/variations', {
+        const response = await fetch('https://api.openai.com/v1/images/generations', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${openaiApiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            image: imageUrl,
+            prompt: `${stylePrompts[style]} Create a black and white coloring page outline based on this concept. Variation ${i + 1} with slightly different line thickness and detail level.`,
+            model: 'dall-e-3',
             n: 1,
             size: '1024x1024',
-            response_format: 'url'
+            quality: 'standard',
+            style: 'natural'
           }),
         });
 
