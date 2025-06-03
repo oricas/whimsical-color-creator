@@ -1,6 +1,5 @@
-
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { OpenAIService } from "@/services/openaiService";
+import React, { createContext, useContext, useState } from "react";
+import { SupabaseImageService } from "@/services/supabaseImageService";
 
 interface DrawingOption {
   id: string;
@@ -57,35 +56,14 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
   const [outlineOptions, setOutlineOptions] = useState<DrawingOption[]>([]);
   const [selectedOutline, setSelectedOutline] = useState<DrawingOption | null>(null);
   const [printSettings, setPrintSettings] = useState<PrintSettings>(initialPrintSettings);
-  const [apiKey, setApiKey] = useState("");
-  const [isApiKeySet, setIsApiKeySet] = useState(false);
 
-  // Check for stored API key on mount
-  useEffect(() => {
-    const storedKey = localStorage.getItem('openai_api_key');
-    if (storedKey) {
-      setApiKey(storedKey);
-      setIsApiKeySet(true);
-    }
-  }, []);
-
-  // Update API key state
-  const handleSetApiKey = (key: string) => {
-    setApiKey(key);
-    setIsApiKeySet(!!key);
-  };
-
-  // Generate drawing options using OpenAI
+  // Generate drawing options using Supabase Edge Functions
   const generateDrawingOptions = async (description: string) => {
-    if (!apiKey) {
-      throw new Error("OpenAI API key is required");
-    }
-
     setIsGenerating(true);
     
     try {
-      const openaiService = new OpenAIService(apiKey);
-      const images = await openaiService.generateImages(description, 4);
+      const imageService = new SupabaseImageService();
+      const images = await imageService.generateImages(description, 4);
       setDrawingOptions(images);
     } catch (error) {
       console.error("Error generating drawings:", error);
@@ -95,12 +73,8 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  // Generate outline options using OpenAI
+  // Generate outline options using Supabase Edge Functions
   const generateOutlineOptions = async (drawingId: string) => {
-    if (!apiKey) {
-      throw new Error("OpenAI API key is required");
-    }
-
     const selectedImage = drawingOptions.find(img => img.id === drawingId);
     if (!selectedImage) {
       throw new Error("Selected drawing not found");
@@ -109,30 +83,12 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsGenerating(true);
     
     try {
-      const openaiService = new OpenAIService(apiKey);
-      const outlines = await openaiService.convertToOutline(selectedImage.url, 'simple');
+      const imageService = new SupabaseImageService();
+      const outlines = await imageService.convertToOutline(selectedImage.url, 'simple');
       setOutlineOptions(outlines);
     } catch (error) {
       console.error("Error generating outlines:", error);
-      // Fallback to mock data if outline conversion fails
-      const mockOutlines = [
-        {
-          id: "1",
-          url: selectedImage.url,
-          alt: "Simple outline"
-        },
-        {
-          id: "2", 
-          url: selectedImage.url,
-          alt: "Detailed outline"
-        },
-        {
-          id: "3",
-          url: selectedImage.url,
-          alt: "Artistic outline"
-        }
-      ];
-      setOutlineOptions(mockOutlines);
+      throw error;
     } finally {
       setIsGenerating(false);
     }
@@ -168,9 +124,9 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
         generateDrawingOptions,
         generateOutlineOptions,
         resetState,
-        apiKey,
-        setApiKey: handleSetApiKey,
-        isApiKeySet,
+        apiKey: "", // No longer needed
+        setApiKey: () => {}, // No longer needed
+        isApiKeySet: true, // Always true since we use Supabase
       }}
     >
       {children}

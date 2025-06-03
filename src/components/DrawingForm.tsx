@@ -1,11 +1,9 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDrawing } from "@/context/DrawingContext";
 import { TextArea } from "@/components/ui-custom/Input";
 import Button from "@/components/ui-custom/Button";
-import ApiKeyInput from "./ApiKeyInput";
-import { PencilLine, Image, Sparkles, MessageSquare, Paintbrush } from "lucide-react";
+import { Image, Sparkles, MessageSquare, Paintbrush } from "lucide-react";
 import { AnimatedTransition } from "./AnimatedTransition";
 import { toast } from "sonner";
 
@@ -23,19 +21,12 @@ const DrawingForm: React.FC = () => {
     description, 
     setDescription, 
     isGenerating, 
-    generateDrawingOptions, 
-    isApiKeySet, 
-    setApiKey 
+    generateDrawingOptions
   } = useDrawing();
   const [promptError, setPromptError] = useState("");
   const [showExamples, setShowExamples] = useState(false);
 
   const handleGenerate = async () => {
-    if (!isApiKeySet) {
-      toast.error("Please connect your OpenAI API key first");
-      return;
-    }
-
     if (!description.trim()) {
       setPromptError("Please enter a description");
       return;
@@ -67,83 +58,77 @@ const DrawingForm: React.FC = () => {
           </div>
           <h1 className="text-3xl font-display font-bold">Describe Your Coloring Page</h1>
           <p className="text-muted-foreground">
-            Connect your OpenAI API key and describe what you'd like to create.
+            Describe what you'd like to create and our AI will generate several options for you.
           </p>
         </div>
 
-        {!isApiKeySet && (
-          <ApiKeyInput onApiKeySet={setApiKey} isLoading={isGenerating} />
-        )}
-
-        {isApiKeySet && (
-          <div className="bg-card rounded-xl border border-border/60 shadow-sm p-6 space-y-4">
-            <TextArea
-              label="Description"
-              placeholder="Enter a detailed description of what you'd like to see in your coloring page..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={5}
-              error={promptError}
-              className="w-full"
-              id="description"
-            />
+        <div className="bg-card rounded-xl border border-border/60 shadow-sm p-6 space-y-4">
+          <TextArea
+            label="Description"
+            placeholder="Enter a detailed description of what you'd like to see in your coloring page..."
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={5}
+            error={promptError}
+            className="w-full"
+            id="description"
+          />
+          
+          <div className="flex justify-between items-center">
+            <button
+              type="button"
+              onClick={() => setShowExamples(!showExamples)}
+              className="text-sm text-king-600 hover:text-king-700 flex items-center gap-1"
+            >
+              <Sparkles size={16} />
+              <span>{showExamples ? "Hide examples" : "Show examples"}</span>
+            </button>
             
-            <div className="flex justify-between items-center">
-              <button
-                type="button"
-                onClick={() => setShowExamples(!showExamples)}
-                className="text-sm text-king-600 hover:text-king-700 flex items-center gap-1"
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setDescription("")}
+                disabled={!description || isGenerating}
               >
-                <Sparkles size={16} />
-                <span>{showExamples ? "Hide examples" : "Show examples"}</span>
-              </button>
+                Clear
+              </Button>
               
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setDescription("")}
-                  disabled={!description || isGenerating}
-                >
-                  Clear
-                </Button>
-                
-                <Button
-                  variant="premium"
-                  icon={<Image size={18} />}
-                  onClick={handleGenerate}
-                  isLoading={isGenerating}
-                  loadingText="Generating..."
-                  disabled={isGenerating || !description.trim()}
-                >
-                  Generate Images
-                </Button>
-              </div>
+              <Button
+                variant="premium"
+                icon={<Image size={18} />}
+                onClick={handleGenerate}
+                isLoading={isGenerating}
+                loadingText="Generating..."
+                disabled={isGenerating || !description.trim()}
+              >
+                Generate Images
+              </Button>
             </div>
-            
-            {showExamples && (
-              <AnimatedTransition className="pt-2">
-                <div className="bg-king-50 rounded-lg p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-medium text-king-700">
-                    <Sparkles size={16} />
-                    <span>Prompt Examples</span>
-                  </div>
-                  <div className="grid gap-2">
-                    {PROMPT_EXAMPLES.map((example, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleExampleClick(example)}
-                        className="text-left text-sm p-2 rounded-md hover:bg-king-100 transition-colors text-muted-foreground hover:text-foreground flex items-start gap-2"
-                      >
-                        <MessageSquare size={14} className="mt-0.5 flex-shrink-0 text-king-400" />
-                        <span>{example}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </AnimatedTransition>
-            )}
           </div>
-        )}
+          
+          {showExamples && (
+            <AnimatedTransition className="pt-2">
+              <div className="bg-king-50 rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-king-700">
+                  <Sparkles size={16} />
+                  <span>Prompt Examples</span>
+                </div>
+                <div className="grid gap-2">
+                  {PROMPT_EXAMPLES.map((example, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleExampleClick(example)}
+                      className="text-left text-sm p-2 rounded-md hover:bg-king-100 transition-colors text-muted-foreground hover:text-foreground flex items-start gap-2"
+                    >
+                      <MessageSquare size={14} className="mt-0.5 flex-shrink-0 text-king-400" />
+                      <span>{example}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </AnimatedTransition>
+          )}
+        </div>
         
         <div className="glass rounded-xl p-6 text-center space-y-4">
           <div className="flex items-center justify-center">
